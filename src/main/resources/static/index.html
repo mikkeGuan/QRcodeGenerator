@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>QR Code Generator</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+<div class="container">
+    <h2>QR Code Generator</h2>
+    <input type="text" id="linkInput" placeholder="Enter a URL..." />
+    <br>
+    <button onclick="generateQRCode()">Generate QR Code</button>
+
+    <div id="qrCode">
+        <img id="qrImage" src="" alt="QR Code will appear here">
+    </div>
+</div>
+
+<script>
+    function generateQRCode() {
+        let link = document.getElementById("linkInput").value;
+        if (link.trim() === "") {
+            alert("Please enter a valid URL!");
+            return;
+        }
+
+        let qrImage = document.getElementById("qrImage");
+        qrImage.src = `/generate?data=${encodeURIComponent(link)}`;
+        qrImage.style.display = "block";
+    }
+</script>
+
+</body>
+</html>
