@@ -91,7 +91,7 @@ public class QrCodeGeneratorApplication {
 		}
 	}
 
-
+//test
 
 	public static void main(String[] args) {
 		SpringApplication.run(QrCodeGeneratorApplication.class, args);
