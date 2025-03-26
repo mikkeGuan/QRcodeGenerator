@@ -15,11 +15,20 @@
     <button onclick="generateQRCode()">Generate QR Code</button>
 
     <div id="qrCode">
-        <img id="qrImage" src="" alt="QR Code will appear here">
+        <img id="qrImage" src="" alt="QR Code will appear here" style="display:none;">
     </div>
+
+    <!-- The Save QR Code button is hidden until a QR code is generated -->
+    <button id="saveButton" onclick="saveQRCode()" style="display:none;">Save QR Code</button>
+
+    <button onclick="viewQRCodeHistory()">View Saved QR Codes</button>
+    <div id="savedQrCodes" style="margin-top: 20px;"></div>
 </div>
 
 <script>
+    let generatedQRCodeData = null;  // To store the generated QR code data
+
+    // Function to generate the QR code
     function generateQRCode() {
         let link = document.getElementById("linkInput").value;
         if (link.trim() === "") {
@@ -28,8 +37,108 @@
         }
 
         let qrImage = document.getElementById("qrImage");
-        qrImage.src = `/generate?data=${encodeURIComponent(link)}`;
-        qrImage.style.display = "block";
+        qrImage.src = `/generate?data=${encodeURIComponent(link)}`;  // Generate the QR code image
+        qrImage.style.display = "block";  // Display the QR code image
+
+        // Show the Save button once QR code is generated
+        document.getElementById("saveButton").style.display = "inline-block";
+
+        // Store the generated QR code data (for saving when the user clicks the save button)
+        generatedQRCodeData = {
+            url: link
+        };
+    }
+
+    // Function to save the generated QR code to the database
+    function saveQRCode() {
+        if (!generatedQRCodeData) {
+            alert("No QR code generated to save.");
+            return;
+        }
+
+        // Send a POST request to save the QR code to the database
+        fetch('/save-qr-code', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(generatedQRCodeData)  // Send the QR code data to be saved
+        })
+        .then(response => response.json())
+        .then(data => {
+            alert("QR Code saved successfully.");
+        })
+        .catch(error => {
+            console.error('Error saving QR code:', error);
+            alert("Error saving QR code.");
+        });
+    }
+
+    // Function to view all saved QR codes from the database
+    function viewQRCodeHistory() {
+        // Send a GET request to fetch all saved QR codes
+        fetch('/view-qr-codes')
+            .then(response => response.json())  // Parse the JSON response
+            .then(data => {
+                let qrCodesContainer = document.getElementById('savedQrCodes');
+                qrCodesContainer.innerHTML = '';  // Clear any previous content
+
+                // Check if the data is an array of QR codes
+                if (Array.isArray(data)) {
+                    data.forEach(qrCode => {
+                        let qrDiv = document.createElement('div');
+                        qrDiv.style.marginBottom = '20px';
+
+                        let qrImage = document.createElement('img');
+                        qrImage.src = `/generate?data=${encodeURIComponent(qrCode.url)}&width=100&height=100`;  // Generate the image from the URL saved in the database
+                        qrImage.alt = `QR Code for ${qrCode.url}`;
+                        qrImage.style.marginRight = '10px';
+
+                        let qrUrl = document.createElement('p');
+                        qrUrl.innerHTML = `URL: <a href="${qrCode.url}" target="_blank">${qrCode.url}</a>`;
+
+                        // Create the delete button
+                        let deleteButton = document.createElement('button');
+                        deleteButton.innerHTML = 'Delete';
+                        deleteButton.onclick = function() {
+                            deleteQRCode(qrCode.id);  // Call deleteQRCode with the QR code's ID
+                        };
+
+                        // Append the QR image, URL, and delete button to the div
+                        qrDiv.appendChild(qrImage);
+                        qrDiv.appendChild(qrUrl);
+                        qrDiv.appendChild(deleteButton);
+
+                        // Append this div to the container
+                        qrCodesContainer.appendChild(qrDiv);
+                    });
+                } else {
+                    console.error("Data is not in the expected format", data);
+                }
+            })
+            .catch(error => {
+                console.error('Error fetching QR codes:', error);
+            });
+    }
+
+    // Function to delete a QR code from the database
+    function deleteQRCode(id) {
+        // Send a DELETE request to delete the QR code
+        fetch(`/delete-qr-code/${id}`, {
+            method: 'DELETE',
+        })
+        .then(response => response.json()) // Parse the JSON response
+        .then(data => {
+            if (data.message === 'QR Code deleted successfully') {
+                viewQRCodeHistory(); // Call to refresh the QR codes list
+            } else {
+                alert(data.message); // Show error message from the backend
+            }
+        })
+        .catch(error => {
+            console.error('Error deleting QR code:', error);
+            alert('Error deleting QR code');
+        });
     }
 </script>
 
